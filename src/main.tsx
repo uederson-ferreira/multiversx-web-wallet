@@ -5,6 +5,7 @@ import App from './App';
 import { Buffer } from 'buffer';
 window.Buffer = Buffer;
 
+import './index.css';
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

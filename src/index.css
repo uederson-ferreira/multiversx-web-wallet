@@ -63,6 +63,31 @@ button:focus-visible {
     color: #747bff;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #460dc9;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    align-self: center;
   }
+  #excluir-btn {
+    background-color: #ff0000;
+    font-style: italic;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    text-align: center;
+    align-items: center;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    align-items: center;
+  }
+  
+  th, td {
+    border: 1px solid #000000; /* Cor azul, você pode mudar */
+    padding: 8px;
+  }
+  
+  
 }

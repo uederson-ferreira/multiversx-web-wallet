@@ -8,7 +8,11 @@ export const getBalance = async (address: string): Promise<string> => {
     const response = await axios.get(`${API_URL}/accounts/${address}`);
     const balance = response.data.balance;
     return (Number(balance) / 1e18).toFixed(4) + " EGLD";
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn(`Conta ${address} ainda não existe na blockchain`);
+      return "0.0000 EGLD";
+    }
     console.error("Erro ao buscar saldo:", error);
     return "Erro";
   }
@@ -36,7 +40,11 @@ export const getEsdtTokens = async (address: string): Promise<EsdtToken[]> => {
       ticker: token.ticker,
       balance: (Number(token.balance) / Math.pow(10, token.decimals)).toFixed(4),
     }));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn(`Nenhum token encontrado para o endereço ${address}`);
+      return [];
+    }
     console.error("Erro ao buscar tokens ESDT:", error);
     return [];
   }
