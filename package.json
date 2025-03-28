@@ -15,15 +15,20 @@
     "@multiversx/sdk-wallet": "^4.6.0",
     "big.js": "^6.2.2",
     "bip39": "^3.1.0",
+    "crypto-js": "^4.2.0",
+    "file-saver": "^2.0.5",
     "hdkey": "^2.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.4.0"
+    "react-router-dom": "^7.4.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@eslint/js": "^9.21.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

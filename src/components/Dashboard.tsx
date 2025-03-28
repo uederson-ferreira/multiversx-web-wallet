@@ -1,186 +1,90 @@
-import React, { useEffect, useState } from 'react';
-import { useWallet } from '../hooks/useWallet';
+// src/components/Dashboard.tsx
+import React, { useEffect, useState } from "react";
+import { getBalance } from "../utils/multiversx";
+import Tokens from "./Tokens";
+import WalletExport from "./WalletExport";
+import WalletImport from "./WalletImport";
 
-interface WalletData {
+interface Wallet {
+  id: string;
+  name: string;
   address: string;
   privateKey: string;
-  mnemonic?: string;
+  mnemonic: string;
   createdAt: number;
+  balance?: string;
 }
 
-export default function Dashboard() {
-  const {
-    address,
-    privateKey,
-    mnemonic,
-    getBalance,
-    importPrivateKey,
-    isNewWallet,
-    setIsNewWallet
-  } = useWallet();
-
-  const [wallets, setWallets] = useState<WalletData[]>([]);
-  const [selectedWallet, setSelectedWallet] = useState<string>('');
-  const [walletBalances, setWalletBalances] = useState<{ [key: string]: string }>({});
-  const [showPrivateKey, setShowPrivateKey] = useState<boolean>(false);
-
-  const loadWallets = () => {
-    const stored = localStorage.getItem('wallets');
-    if (stored) {
-      const parsed: WalletData[] = JSON.parse(stored);
-      const sorted = parsed.sort((a, b) => a.createdAt - b.createdAt); // ordem crescente
-      setWallets(sorted);
-      if (!selectedWallet && sorted.length > 0) {
-        setSelectedWallet(sorted[0].address);
-        importPrivateKey(sorted[0].privateKey);
-      }
-    }
-  };
+const Dashboard = () => {
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [showPrivateKeyMap, setShowPrivateKeyMap] = useState<Record<string, boolean>>({});
+  const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    loadWallets();
+    const storedWallets = localStorage.getItem("wallets");
+    if (storedWallets) {
+      const parsedWallets = JSON.parse(storedWallets);
+      setWallets(parsedWallets);
+      parsedWallets.forEach((wallet: Wallet) => updateBalance(wallet.id, wallet.address));
+    }
   }, []);
 
-  useEffect(() => {
-    if (address && privateKey && isNewWallet) {
-      const stored = localStorage.getItem('wallets');
-      const parsed: WalletData[] = stored ? JSON.parse(stored) : [];
-      const exists = parsed.find(w => w.address === address);
-      if (!exists) {
-        parsed.push({ address, privateKey, mnemonic, createdAt: Date.now() });
-        const sorted = parsed.sort((a, b) => a.createdAt - b.createdAt); // ordem crescente
-        localStorage.setItem('wallets', JSON.stringify(parsed));
-        setWallets(sorted);
-        setSelectedWallet(address);
-        setIsNewWallet(false);
-      }
-    }
-  }, [address, privateKey, isNewWallet, mnemonic, setIsNewWallet]);
-
-  useEffect(() => {
-    const fetchAllBalances = async () => {
-      const balances: { [key: string]: string } = {};
-      for (const wallet of wallets) {
-        await importPrivateKey(wallet.privateKey);
-        const bal = await getBalance();
-        balances[wallet.address] = bal;
-      }
-      setWalletBalances(balances);
-    };
-
-    if (wallets.length > 0) {
-      fetchAllBalances();
-    }
-  }, [wallets]);
-
-  const handleClearAll = () => {
-    localStorage.removeItem('wallets');
-    setWallets([]);
-    setSelectedWallet('');
-    setWalletBalances({});
-    alert('Todas as carteiras foram apagadas!');
+  const updateBalance = async (id: string, address: string) => {
+    setLoadingMap((prev) => ({ ...prev, [id]: true }));
+    const balance = await getBalance(address);
+    setWallets((prevWallets) =>
+      prevWallets.map((wallet) =>
+        wallet.id === id ? { ...wallet, balance } : wallet
+      )
+    );
+    setLoadingMap((prev) => ({ ...prev, [id]: false }));
   };
 
-  const handleDeleteWallet = (addr: string) => {
-    const updated = wallets.filter(w => w.address !== addr);
-    localStorage.setItem('wallets', JSON.stringify(updated));
-    setWallets(updated);
-    setWalletBalances(prev => {
-      const copy = { ...prev };
-      delete copy[addr];
-      return copy;
-    });
-    if (selectedWallet === addr) {
-      setSelectedWallet(updated.length > 0 ? updated[0].address : '');
-    }
+  const togglePrivateKey = (id: string) => {
+    setShowPrivateKeyMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
-    <div>
-      <h2>Dashboard</h2>
-
-      <button
-        onClick={handleClearAll}
-        style={{ marginTop: '2rem', background: 'red', color: 'white', padding: '10px' }}
-      >
-        🧨 Apagar Todas as Carteiras
-      </button>
-
-      {wallets.length > 0 ? (
-        <>
-          <h3>Carteiras Criadas:</h3>
-          <table border={1} cellPadding={10} style={{ width: '100%' }}>
-            <thead>
-              <tr>
-                <th>Apelido</th>
-                <th>Endereço</th>
-                <th>Saldo</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {wallets.map((w, i) => (
-                <tr key={w.address}>
-                  <td>Carteira {i + 1}</td>
-                  <td>{w.address}</td>
-                  <td>{walletBalances[w.address] || '...'}</td>
-                  <td>
-                    <button onClick={() => {
-                      setSelectedWallet(w.address);
-                      importPrivateKey(w.privateKey);
-                    }}>
-                      Usar
-                    </button>
-                    <button
-                      style={{ marginLeft: '10px', color: 'red' }}
-                      onClick={() => handleDeleteWallet(w.address)}
-                    >
-                      ❌ Excluir
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      ) : (
-        <p>Nenhuma carteira criada.</p>
-      )}
-
-      {selectedWallet && (
-        <div style={{ marginTop: '2rem' }}>
-          <h3>Carteira Selecionada:</h3>
-          <p><strong>Endereço:</strong> {selectedWallet}</p>
-          <p><strong>Saldo:</strong> {walletBalances[selectedWallet] || '...'}</p>
-
-          <button onClick={async () => {
-            const wallet = wallets.find(w => w.address === selectedWallet);
-            if (wallet) {
-              await importPrivateKey(wallet.privateKey);
-              const bal = await getBalance();
-              setWalletBalances((prev) => ({ ...prev, [selectedWallet]: bal }));
-            }
-          }}>
-            🔁 Atualizar Saldo
-          </button>
-
-          <div style={{ marginTop: '1rem' }}>
-            <button onClick={() => setShowPrivateKey(!showPrivateKey)}>
-              {showPrivateKey ? '🙈 Ocultar Chaves' : '🔐 Mostrar Chaves'}
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">Minhas Carteiras</h1>
+      {wallets.map((wallet) => (
+        <div
+          key={wallet.id}
+          className="border p-4 mb-4 rounded-xl shadow-lg bg-white"
+        >
+          <h2 className="text-lg font-semibold">{wallet.name}</h2>
+          <p><strong>Endereço:</strong> {wallet.address}</p>
+          <p>
+            <strong>Chave Privada:</strong>
+            <input
+              type={showPrivateKeyMap[wallet.id] ? "text" : "password"}
+              value={wallet.privateKey}
+              readOnly
+              className="ml-2 p-1 border rounded"
+            />
+            <button
+              onClick={() => togglePrivateKey(wallet.id)}
+              className="ml-2 text-blue-500 hover:underline"
+            >
+              {showPrivateKeyMap[wallet.id] ? "Ocultar" : "Mostrar"}
             </button>
-            {showPrivateKey && (
-              <div>
-                <p><strong>Chave Privada:</strong> {
-                  wallets.find(w => w.address === selectedWallet)?.privateKey || '(não encontrada)'
-                }</p>
-                <p><strong>Mnemonic:</strong> {
-                  wallets.find(w => w.address === selectedWallet)?.mnemonic || '(não encontrado)'
-                }</p>
-              </div>
-            )}
-          </div>
+          </p>
+          <p><strong>Saldo:</strong> {wallet.balance ?? "Carregando..."}</p>
+          <button
+            onClick={() => updateBalance(wallet.id, wallet.address)}
+            className="mt-2 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+            disabled={loadingMap[wallet.id]}
+          >
+            {loadingMap[wallet.id] ? "Atualizando..." : "Atualizar Saldo"}
+          </button>
+          <Tokens address={wallet.address} />
+          <WalletExport wallet={wallet} />
         </div>
-      )}
+      ))}
+
+      <WalletImport />
     </div>
   );
-}
+};
+
+export default Dashboard;
