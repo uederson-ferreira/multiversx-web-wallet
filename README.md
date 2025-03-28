@@ -1,54 +1,101 @@
-# React + TypeScript + Vite
+# MultiversX Web Wallet
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este projeto é uma wallet web desenvolvida com React + TypeScript que interage com a blockchain MultiversX (Elrond), permitindo a geração de carteiras, importação de seeds e chaves privadas, consulta de saldo e envio de EGLD.
 
-Currently, two official plugins are available:
+## 🌟 Desafio Atendido: Wallet Challenger
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Must Have (completos)
+- [x] Geração de par de chaves via mnemonic (24 palavras)
+- [x] Importa seed (12 ou 24 palavras)
+- [x] Importa chave privada
+- [x] Busca saldo da carteira
+- [x] Envia EGLD para outros endereços
 
-## Expanding the ESLint configuration
+### Important (parcialmente atendidos)
+- [x] Importa seed de 12 palavras (compatível)
+- [ ] Busca de saldo de outros tokens (em progresso)
+- [ ] Envio de tokens ESDT (em progresso)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Tips (parcialmente atendidos)
+- [x] Armazena chave privada com criptografia local (AES)
+- [ ] Suporte a Web3 Secret JSON (em planejamento)
+- [ ] Suporte a assinatura offline (futuro)
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+---
+
+## 🚀 Funcionalidades
+
+- Geração de nova wallet com seed e chave privada
+- Importa wallet por seed ou private key
+- Salva várias carteiras localmente com apelido e ordem
+- Consulta de saldo em tempo real
+- Envio de EGLD para outro endereço
+- Lista de carteiras com opção de exclusão e visualização de private key + mnemonic
+
+---
+
+## 🚫 Requisitos
+
+- Node.js (v18 ou superior)
+- NPM ou Yarn
+- Ambiente com navegador moderno (Chrome, Brave, Edge, etc.)
+
+---
+
+## 📁 Instalação e Execução
+
+```bash
+# Clone o repositório
+$ git clone https://github.com/uederson-ferreira/multiversx-web-wallet.git
+$ cd multiversx-web-wallet
+
+# Instale as dependências
+$ npm install
+
+# Inicie o ambiente de desenvolvimento
+$ npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚖️ Dependências Principais
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+- `@multiversx/sdk-core`
+- `@multiversx/sdk-wallet`
+- `@multiversx/sdk-network-providers`
+- `crypto-browserify`
+- `vite` + `react` + `typescript`
+
+---
+
+## ⚙️ Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz com o seguinte:
+
+```env
+VITE_MULTIVERSX_PROVIDER_URL=https://devnet-gateway.multiversx.com
 ```
+
+---
+
+## 🛠️ Melhorias Futuras
+
+- Exportar carteiras em formato compatível com `Web3 Secret Storage JSON`
+- Assinatura de mensagens e transações offline
+- Interface responsiva com estilizacão (ex: Tailwind, ShadCN, etc.)
+- Listagem e envio de tokens ESDT (fungíveis e NFTs)
+
+---
+
+## 👤 Autor
+
+Desenvolvido por **Uederson Ferreira** como parte do desafio Wallet Challenger na blockchain MultiversX, dojo MultiversX na NearX.
+
+[GitHub](https://github.com/uederson-ferreira) | [LinkedIn](https://www.linkedin.com/in/uedersonferreira)
+
+---
+
+## ✨ Licença
+
+Este projeto é de uso livre para fins educacionais e demonstrativos. Direitos reservados ao autor.
+
