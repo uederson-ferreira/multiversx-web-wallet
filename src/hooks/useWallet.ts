@@ -10,7 +10,13 @@ import { Mnemonic } from '@multiversx/sdk-wallet';
 import { deriveAddressFromPrivateKey } from '../utils';
 import { encryptData, decryptData } from '../utils/crypto';
 
-// 🔧 Converte hex string para Uint8Array
+interface WalletData {
+  address: string;
+  privateKey: string;
+  mnemonic?: string;
+  createdAt: number;
+}
+
 function hexToUint8Array(hex: string): Uint8Array {
   if (hex.length % 2 !== 0) throw new Error('Hex inválido');
   const bytes = new Uint8Array(hex.length / 2);
@@ -20,7 +26,6 @@ function hexToUint8Array(hex: string): Uint8Array {
   return bytes;
 }
 
-// 🌐 Provider MultiversX
 const providerUrl = import.meta.env.VITE_MULTIVERSX_PROVIDER_URL;
 const provider = new ApiNetworkProvider(providerUrl);
 
@@ -28,8 +33,18 @@ export function useWallet() {
   const [mnemonic, setMnemonic] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [address, setAddress] = useState('');
+  const [isNewWallet, setIsNewWallet] = useState(false);
 
-  // 🔐 Gera nova seed (24 palavras)
+  const saveWalletToLocalStorage = (addr: string, pkHex: string, mnemonic?: string) => {
+    const stored = localStorage.getItem('wallets');
+    const parsed: WalletData[] = stored ? JSON.parse(stored) : [];
+    const exists = parsed.find(w => w.address === addr);
+    if (!exists) {
+      parsed.push({ address: addr, privateKey: pkHex, mnemonic, createdAt: Date.now() });
+      localStorage.setItem('wallets', JSON.stringify(parsed));
+    }
+  };
+
   const generateMnemonic = async (): Promise<string> => {
     const mnemonicObj = Mnemonic.generate();
     const newMnemonic = mnemonicObj.toString();
@@ -38,7 +53,6 @@ export function useWallet() {
     return newMnemonic;
   };
 
-  // 🔐 Importa mnemonic e exibe chaves
   const importMnemonic = async (words: string): Promise<void> => {
     const mnemonicObj = Mnemonic.fromString(words);
     const secretKey = mnemonicObj.deriveKey();
@@ -49,27 +63,26 @@ export function useWallet() {
     setMnemonic(words);
     setPrivateKey(pkHex);
     setAddress(addr);
+    setIsNewWallet(true);
 
-    // console.log('🧠 Mnemonic:', words);
-    // console.log('🔐 Private Key:', pkHex);
-    // console.log('📬 Public Address:', addr);
+    saveWalletToLocalStorage(addr, pkHex, words);
   };
 
-  // 🔑 Importa chave privada diretamente
   const importPrivateKey = async (pkHex: string): Promise<void> => {
+    const addr = deriveAddressFromPrivateKey(pkHex);
     setPrivateKey(pkHex);
-    const derivedAddress = deriveAddressFromPrivateKey(pkHex);
-    setAddress(derivedAddress);
+    setAddress(addr);
+    setIsNewWallet(true);
+
+    saveWalletToLocalStorage(addr, pkHex);
   };
 
-  // 💰 Busca saldo da carteira
   const getBalance = async (): Promise<string> => {
     if (!address) return '0';
     const account = await provider.getAccount(new Address(address));
     return account.balance.toString();
   };
 
-  // 🚀 Envia EGLD
   const sendTransaction = async (to: string, amount: string): Promise<void> => {
     if (!privateKey || !address) throw new Error('Wallet não carregada!');
 
@@ -98,13 +111,11 @@ export function useWallet() {
     console.log('✅ Transação enviada! Hash:', txHash);
   };
 
-  // 🔒 Armazena chave criptografada
   const storeWalletEncrypted = async (password: string): Promise<void> => {
     const encrypted = await encryptData(privateKey, password);
     localStorage.setItem('encryptedPK', encrypted);
   };
 
-  // 🔓 Recupera chave criptografada
   const loadWalletEncrypted = async (password: string): Promise<void> => {
     const encryptedPK = localStorage.getItem('encryptedPK');
     if (!encryptedPK) return;
@@ -122,6 +133,8 @@ export function useWallet() {
     getBalance,
     sendTransaction,
     storeWalletEncrypted,
-    loadWalletEncrypted
+    loadWalletEncrypted,
+    isNewWallet,
+    setIsNewWallet
   };
 }
