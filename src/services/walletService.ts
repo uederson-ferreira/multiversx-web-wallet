@@ -2,18 +2,29 @@ import { Address, Transaction } from '@multiversx/sdk-core';
 import { ApiNetworkProvider } from '@multiversx/sdk-network-providers';
 import { Mnemonic, UserSigner } from '@multiversx/sdk-wallet';
 import { generateMnemonic, validateMnemonic } from 'bip39';
+import { Network, defaultNetwork } from '../config/networks';
 
 export class WalletService {
   private networkProvider: ApiNetworkProvider;
   private signer: UserSigner | null = null;
+  private currentNetwork: Network;
 
   constructor() {
-    // Usando a testnet do MultiversX
-    this.networkProvider = new ApiNetworkProvider('https://testnet-api.multiversx.com');
+    this.currentNetwork = defaultNetwork;
+    this.networkProvider = new ApiNetworkProvider(this.currentNetwork.apiUrl);
   }
 
   clearWallet() {
     this.signer = null;
+  }
+
+  getCurrentNetwork(): Network {
+    return this.currentNetwork;
+  }
+
+  setNetwork(network: Network) {
+    this.currentNetwork = network;
+    this.networkProvider = new ApiNetworkProvider(network.apiUrl);
   }
 
   async createWallet(): Promise<{ mnemonic: string; address: string }> {
@@ -92,7 +103,7 @@ export class WalletService {
         sender,
         gasPrice: 1000000000n,
         gasLimit: 50000n,
-        chainID: 'T', // Testnet
+        chainID: this.currentNetwork.chainId,
         version: 1
       });
 

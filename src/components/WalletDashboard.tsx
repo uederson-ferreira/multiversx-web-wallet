@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, Send, History, Settings, Copy, ExternalLink, LogOut } from 'lucide-react';
 import { useWallet } from '../hooks/useWallet';
 import { useNavigate } from 'react-router-dom';
+import { networks } from '../config/networks';
+import { walletService } from '../services/walletService';
 
 interface Transaction {
   hash: string;
@@ -19,6 +21,7 @@ const WalletDashboard: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currentNetwork = walletService.getCurrentNetwork();
 
   useEffect(() => {
     if (!address) {
@@ -79,6 +82,15 @@ const WalletDashboard: React.FC = () => {
     }
   };
 
+  const handleNetworkChange = (networkId: string) => {
+    const network = networks.find(n => n.id === networkId);
+    if (network) {
+      walletService.setNetwork(network);
+      updateBalance();
+      updateTransactions();
+    }
+  };
+
   if (!address) {
     return null;
   }
@@ -94,6 +106,17 @@ const WalletDashboard: React.FC = () => {
               <h1 className="text-xl font-semibold">Degen Sentinels Wallet</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <select
+                value={currentNetwork.id}
+                onChange={(e) => handleNetworkChange(e.target.value)}
+                className="bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {networks.map(network => (
+                  <option key={network.id} value={network.id}>
+                    {network.name}
+                  </option>
+                ))}
+              </select>
               <button 
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-white transition-colors flex items-center"
@@ -112,7 +135,7 @@ const WalletDashboard: React.FC = () => {
         <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">
-              {balance} EGLD
+              {balance} {currentNetwork.egldLabel}
             </h2>
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
               <span className="font-mono">{address}</span>
@@ -175,7 +198,7 @@ const WalletDashboard: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-700/50 p-4 rounded-lg">
                   <h3 className="text-lg font-medium mb-2">Saldo Disponível</h3>
-                  <p className="text-2xl font-semibold text-blue-400">{balance} EGLD</p>
+                  <p className="text-2xl font-semibold text-blue-400">{balance} {currentNetwork.egldLabel}</p>
                 </div>
                 <div className="bg-gray-700/50 p-4 rounded-lg">
                   <h3 className="text-lg font-medium mb-2">Endereço da Wallet</h3>
@@ -256,7 +279,7 @@ const WalletDashboard: React.FC = () => {
                           <p className={`text-sm font-medium ${
                             tx.type === 'send' ? 'text-red-400' : 'text-green-400'
                           }`}>
-                            {tx.type === 'send' ? '-' : '+'}{tx.amount} EGLD
+                            {tx.type === 'send' ? '-' : '+'}{tx.amount} {currentNetwork.egldLabel}
                           </p>
                           <p className="text-xs text-gray-400">{tx.timestamp}</p>
                         </div>
