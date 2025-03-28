@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Address,
   Transaction,
@@ -9,6 +9,7 @@ import { ApiNetworkProvider } from '@multiversx/sdk-network-providers';
 import { Mnemonic } from '@multiversx/sdk-wallet';
 import { deriveAddressFromPrivateKey } from '../utils';
 import { encryptData, decryptData } from '../utils/crypto';
+import { walletService } from '../services/walletService';
 
 interface WalletData {
   address: string;
@@ -29,112 +30,140 @@ function hexToUint8Array(hex: string): Uint8Array {
 const providerUrl = import.meta.env.VITE_MULTIVERSX_PROVIDER_URL;
 const provider = new ApiNetworkProvider(providerUrl);
 
-export function useWallet() {
-  const [mnemonic, setMnemonic] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
-  const [address, setAddress] = useState('');
-  const [isNewWallet, setIsNewWallet] = useState(false);
+interface WalletState {
+  address: string | null;
+  balance: string;
+  transactions: any[];
+  isLoading: boolean;
+  error: string | null;
+}
 
-  const saveWalletToLocalStorage = (addr: string, pkHex: string, mnemonic?: string) => {
-    const stored = localStorage.getItem('wallets');
-    const parsed: WalletData[] = stored ? JSON.parse(stored) : [];
-    const exists = parsed.find(w => w.address === addr);
-    if (!exists) {
-      parsed.push({ address: addr, privateKey: pkHex, mnemonic, createdAt: Date.now() });
-      localStorage.setItem('wallets', JSON.stringify(parsed));
+const WALLET_STATE_KEY = 'walletState';
+
+// Estado inicial padrão
+const defaultState: WalletState = {
+  address: null,
+  balance: '0',
+  transactions: [],
+  isLoading: false,
+  error: null,
+};
+
+export const useWallet = () => {
+  const [state, setState] = useState<WalletState>(() => {
+    const savedState = localStorage.getItem(WALLET_STATE_KEY);
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        // Validar se o estado salvo tem a estrutura correta
+        if (parsed && typeof parsed === 'object' && 'address' in parsed) {
+          return parsed;
+        }
+      } catch {
+        // Se houver erro ao parsear, limpar o localStorage
+        localStorage.removeItem(WALLET_STATE_KEY);
+      }
+    }
+    return defaultState;
+  });
+
+  // Função para atualizar o estado de forma síncrona
+  const updateState = (newState: Partial<WalletState>) => {
+    const updatedState = { ...state, ...newState };
+    setState(updatedState);
+    if (updatedState.address) {
+      localStorage.setItem(WALLET_STATE_KEY, JSON.stringify(updatedState));
+    } else {
+      localStorage.removeItem(WALLET_STATE_KEY);
     }
   };
 
-  const generateMnemonic = async (): Promise<string> => {
-    const mnemonicObj = Mnemonic.generate();
-    const newMnemonic = mnemonicObj.toString();
-    setMnemonic(newMnemonic);
-    await importMnemonic(newMnemonic);
-    return newMnemonic;
+  const createWallet = async () => {
+    try {
+      updateState({ isLoading: true, error: null });
+      const { mnemonic, address } = await walletService.createWallet();
+      updateState({ address, isLoading: false });
+      return mnemonic;
+    } catch (error) {
+      updateState({ error: 'Falha ao criar wallet', isLoading: false });
+      throw error;
+    }
   };
 
-  const importMnemonic = async (words: string): Promise<void> => {
-    const mnemonicObj = Mnemonic.fromString(words);
-    const secretKey = mnemonicObj.deriveKey();
-    const pkHex = secretKey.hex();
-    const pubKey = secretKey.generatePublicKey();
-    const addr = pubKey.toAddress().bech32();
-
-    setMnemonic(words);
-    setPrivateKey(pkHex);
-    setAddress(addr);
-    setIsNewWallet(true);
-
-    saveWalletToLocalStorage(addr, pkHex, words);
+  const importWallet = async (mnemonic: string) => {
+    try {
+      updateState({ isLoading: true, error: null });
+      const address = await walletService.importWallet(mnemonic);
+      updateState({ address, isLoading: false });
+      return address;
+    } catch (error) {
+      updateState({ error: 'Falha ao importar wallet', isLoading: false });
+      throw error;
+    }
   };
 
-  const importPrivateKey = async (pkHex: string): Promise<void> => {
-    const addr = deriveAddressFromPrivateKey(pkHex);
-    setPrivateKey(pkHex);
-    setAddress(addr);
-    setIsNewWallet(true);
-
-    saveWalletToLocalStorage(addr, pkHex);
+  const updateBalance = async () => {
+    try {
+      if (!state.address) return;
+      const balance = await walletService.getBalance(state.address);
+      updateState({ balance });
+    } catch (error) {
+      console.error('Erro ao atualizar saldo:', error);
+    }
   };
 
-  const getBalance = async (): Promise<string> => {
-    if (!address) return '0';
-    const account = await provider.getAccount(new Address(address));
-    return account.balance.toString();
+  const updateTransactions = async () => {
+    try {
+      if (!state.address) return;
+      const transactions = await walletService.getTransactions(state.address);
+      updateState({ transactions });
+    } catch (error) {
+      console.error('Erro ao atualizar transações:', error);
+    }
   };
 
-  const sendTransaction = async (to: string, amount: string): Promise<void> => {
-    if (!privateKey || !address) throw new Error('Wallet não carregada!');
-
-    const secretKey = new UserSecretKey(hexToUint8Array(privateKey));
-    const signer = new UserSigner(secretKey);
-
-    const senderAddr = new Address(address);
-    const receiverAddr = new Address(to);
-    const senderAccount = await provider.getAccount(senderAddr);
-
-    const tx = new Transaction({
-      nonce: BigInt(senderAccount.nonce),
-      value: BigInt(amount),
-      receiver: receiverAddr,
-      sender: senderAddr,
-      gasLimit: BigInt(50000),
-      data: new Uint8Array(),
-      chainID: 'D',
-      version: 1
-    });
-
-    const signature = await signer.sign(tx.serializeForSigning());
-    tx.applySignature(signature);
-    const txHash = await provider.sendTransaction(tx.toSendable());
-
-    console.log('✅ Transação enviada! Hash:', txHash);
+  const sendTransaction = async (toAddress: string, amount: string) => {
+    try {
+      updateState({ isLoading: true, error: null });
+      if (!state.address) throw new Error('Wallet não inicializada');
+      
+      const hash = await walletService.sendTransaction(state.address, toAddress, amount);
+      updateState({ isLoading: false });
+      return hash;
+    } catch (error) {
+      updateState({ error: 'Falha ao enviar transação', isLoading: false });
+      throw error;
+    }
   };
 
-  const storeWalletEncrypted = async (password: string): Promise<void> => {
-    const encrypted = await encryptData(privateKey, password);
-    localStorage.setItem('encryptedPK', encrypted);
+  const logout = () => {
+    localStorage.removeItem(WALLET_STATE_KEY);
+    setState(defaultState);
+    // Limpar também o signer no walletService
+    walletService.clearWallet();
   };
 
-  const loadWalletEncrypted = async (password: string): Promise<void> => {
-    const encryptedPK = localStorage.getItem('encryptedPK');
-    if (!encryptedPK) return;
-    const pkHex = await decryptData(encryptedPK, password);
-    await importPrivateKey(pkHex);
-  };
+  // Atualizar saldo e transações periodicamente
+  useEffect(() => {
+    if (state.address) {
+      updateBalance();
+      updateTransactions();
+      const interval = setInterval(() => {
+        updateBalance();
+        updateTransactions();
+      }, 30000); // Atualizar a cada 30 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [state.address]);
 
   return {
-    mnemonic,
-    privateKey,
-    address,
-    generateMnemonic,
-    importMnemonic,
-    importPrivateKey,
-    getBalance,
+    ...state,
+    createWallet,
+    importWallet,
     sendTransaction,
-    storeWalletEncrypted,
-    loadWalletEncrypted,
-    isNewWallet,
-    setIsNewWallet
+    updateBalance,
+    updateTransactions,
+    logout,
   };
-}
+};

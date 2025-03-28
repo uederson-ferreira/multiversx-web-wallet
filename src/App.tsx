@@ -1,25 +1,39 @@
 // src/App.tsx
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import CreateOrImport from './components/CreateOrImport';
-import Dashboard from './components/Dashboard';
-import TransferForm from './components/TransferForm';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import WalletHome from './components/WalletHome';
+import CreateWallet from './components/CreateWallet';
+import ImportWallet from './components/ImportWallet';
+import WalletDashboard from './components/WalletDashboard';
+import { useWallet } from './hooks/useWallet';
 
-function App() {
+const App: React.FC = () => {
+  const { address } = useWallet();
+
   return (
-    <BrowserRouter>
-      <nav style={{ margin: '1rem' }}>
-        <Link to="/" style={{ marginRight: '1rem' }}>Create/Import</Link>
-        <Link to="/dashboard" style={{ marginRight: '1rem' }}>Dashboard</Link>
-        <Link to="/transfer">Transfer</Link>
-      </nav>
+    <div className="min-h-screen bg-gray-100">
       <Routes>
-        <Route path="/" element={<CreateOrImport />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/transfer" element={<TransferForm />} />
+        <Route
+          path="/"
+          element={
+            address ? (
+              <WalletDashboard />
+            ) : (
+              <WalletHome />
+            )
+          }
+        />
+        <Route
+          path="/create"
+          element={<CreateWallet />}
+        />
+        <Route
+          path="/import"
+          element={<ImportWallet />}
+        />
       </Routes>
-    </BrowserRouter>
+    </div>
   );
-}
+};
 
 export default App;

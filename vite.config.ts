@@ -44,12 +44,13 @@ export default defineConfig({
       domain: 'rollup-plugin-node-polyfills/polyfills/domain',
       buffer: 'buffer',
       process: 'process/browser',
+      'protobufjs/minimal': 'protobufjs/minimal',
     },
   },
   define: {
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['buffer', 'process', 'util'],
+    include: ['buffer', 'process', 'util', 'protobufjs/minimal'],
   },
 });
