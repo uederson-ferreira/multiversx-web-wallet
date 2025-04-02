@@ -1,6 +1,6 @@
-# Degen Sentinels Wallet
+# MultiversX Web Wallet
 
-Uma carteira web para a blockchain MultiversX, desenvolvida para os Degen Sentinels.
+Uma carteira web para a blockchain MultiversX, permitindo criar e gerenciar contas, enviar transações e visualizar saldos.
 
 ## Funcionalidades
 

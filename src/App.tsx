@@ -2,13 +2,13 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import WalletHome from './components/WalletHome';
+import WalletDashboard from './components/WalletDashboard';
 import CreateWallet from './components/CreateWallet';
 import ImportWallet from './components/ImportWallet';
-import WalletDashboard from './components/WalletDashboard';
 import { useWallet } from './hooks/useWallet';
 
 const App: React.FC = () => {
-  const { address } = useWallet();
+  const { walletData } = useWallet();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -16,8 +16,8 @@ const App: React.FC = () => {
         <Route
           path="/"
           element={
-            address ? (
-              <WalletDashboard />
+            walletData ? (
+              <Navigate to="/dashboard" replace />
             ) : (
               <WalletHome />
             )
@@ -25,11 +25,37 @@ const App: React.FC = () => {
         />
         <Route
           path="/create"
-          element={<CreateWallet />}
+          element={
+            walletData ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <CreateWallet />
+            )
+          }
         />
         <Route
           path="/import"
-          element={<ImportWallet />}
+          element={
+            walletData ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <ImportWallet />
+            )
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            walletData ? (
+              <WalletDashboard />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
         />
       </Routes>
     </div>

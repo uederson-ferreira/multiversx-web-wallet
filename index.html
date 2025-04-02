@@ -1,14 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Degen Sentinels Wallet</title>
+    <title>MultiversX Web Wallet</title>
   </head>
   <body>
     <div id="root"></div>
-    <!-- O Vite carrega o bundle a partir deste script -->
+    <script>
+      window.global = window;
+      window.process = {
+        env: { NODE_DEBUG: undefined },
+        version: '',
+        versions: {}
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

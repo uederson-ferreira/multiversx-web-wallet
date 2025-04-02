@@ -1,5 +1,5 @@
 {
-  "name": "degen-sentinels-wallet",
+  "name": "multiversx-web-wallet",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@elrondnetwork/erdjs-walletcore": "^2.1.0",
     "@multiversx/sdk-core": "^14.0.1",
     "@multiversx/sdk-network-providers": "^2.9.3",
     "@multiversx/sdk-wallet": "^4.6.0",
@@ -17,13 +18,14 @@
     "big.js": "^6.2.2",
     "bip39": "^3.1.0",
     "crypto-js": "^4.2.0",
+    "ethereumjs-wallet": "^1.0.2",
     "file-saver": "^2.0.5",
     "hdkey": "^2.1.0",
     "lucide-react": "^0.294.0",
     "protobufjs": "^7.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
+    "react-router-dom": "^6.30.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

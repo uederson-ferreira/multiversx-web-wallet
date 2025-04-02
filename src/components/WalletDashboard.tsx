@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet, Send, History, Settings, Copy, ExternalLink, LogOut } from 'lucide-react';
+import { Wallet, Send, History, Copy, ExternalLink, LogOut } from 'lucide-react';
 import { useWallet } from '../hooks/useWallet';
 import { useNavigate } from 'react-router-dom';
 import { networks } from '../config/networks';
 import { walletService } from '../services/walletService';
 
-interface Transaction {
-  hash: string;
-  type: 'send' | 'receive';
-  amount: string;
-  address: string;
-  timestamp: string;
-}
-
 const WalletDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { address, balance, transactions, sendTransaction, updateBalance, updateTransactions, logout } = useWallet();
+  const { walletData, logout } = useWallet();
   const [activeTab, setActiveTab] = useState<'overview' | 'send' | 'history'>('overview');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -24,74 +16,36 @@ const WalletDashboard: React.FC = () => {
   const currentNetwork = walletService.getCurrentNetwork();
 
   useEffect(() => {
-    if (!address) {
+    if (!walletData) {
       navigate('/');
-      return;
     }
-    
-    updateBalance();
-    updateTransactions();
-    
-    const interval = setInterval(() => {
-      updateBalance();
-      updateTransactions();
-    }, 30000); // Atualiza a cada 30 segundos
-    
-    return () => clearInterval(interval);
-  }, [address, navigate, updateBalance, updateTransactions]);
+  }, [walletData, navigate]);
 
   const handleCopyAddress = () => {
-    navigator.clipboard.writeText(address || '');
+    if (walletData) {
+      navigator.clipboard.writeText(walletData.address);
+    }
   };
 
   const handleExplorer = () => {
-    if (address) {
-      window.open(`https://testnet-explorer.multiversx.com/accounts/${address}`, '_blank');
+    if (walletData) {
+      window.open(`${currentNetwork.explorerUrl}/accounts/${walletData.address}`, '_blank');
     }
   };
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
-  };
-
-  const handleSend = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      if (!recipientAddress || !amount) {
-        throw new Error('Por favor, preencha todos os campos');
-      }
-
-      if (isNaN(Number(amount)) || Number(amount) <= 0) {
-        throw new Error('Por favor, insira um valor válido');
-      }
-
-      await sendTransaction(recipientAddress, amount);
-      setRecipientAddress('');
-      setAmount('');
-      setActiveTab('overview');
-      updateBalance();
-      updateTransactions();
-    } catch (error) {
-      console.error('Erro ao enviar transação:', error);
-      setError(error instanceof Error ? error.message : 'Erro ao enviar transação');
-    } finally {
-      setIsLoading(false);
-    }
+    navigate('/');
   };
 
   const handleNetworkChange = (networkId: string) => {
     const network = networks.find(n => n.id === networkId);
     if (network) {
       walletService.setNetwork(network);
-      updateBalance();
-      updateTransactions();
     }
   };
 
-  if (!address) {
+  if (!walletData) {
     return null;
   }
 
@@ -103,7 +57,7 @@ const WalletDashboard: React.FC = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <Wallet className="h-8 w-8 text-blue-400 mr-2" />
-              <h1 className="text-xl font-semibold">Degen Sentinels Wallet</h1>
+              <h1 className="text-xl font-semibold">MultiversX Wallet</h1>
             </div>
             <div className="flex items-center space-x-4">
               <select
@@ -131,14 +85,14 @@ const WalletDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Balance Card */}
+        {/* Address Card */}
         <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-2">
-              {balance} {currentNetwork.egldLabel}
+              0 EGLD
             </h2>
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
-              <span className="font-mono">{address}</span>
+              <span className="font-mono">{walletData.address}</span>
               <button onClick={handleCopyAddress} className="hover:text-white transition-colors">
                 <Copy className="h-4 w-4" />
               </button>
@@ -150,7 +104,7 @@ const WalletDashboard: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-gray-800 rounded-lg shadow-lg mb-8">
+        <div className="bg-gray-800 rounded-lg shadow-lg">
           <div className="border-b border-gray-700">
             <nav className="-mb-px flex">
               <button
@@ -195,98 +149,56 @@ const WalletDashboard: React.FC = () => {
             )}
 
             {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-700/50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium mb-2">Saldo Disponível</h3>
-                  <p className="text-2xl font-semibold text-blue-400">{balance} {currentNetwork.egldLabel}</p>
-                </div>
-                <div className="bg-gray-700/50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium mb-2">Endereço da Wallet</h3>
-                  <div className="flex items-center space-x-2">
-                    <p className="text-sm font-mono text-gray-300 break-all">{address}</p>
-                    <button onClick={handleCopyAddress} className="text-gray-400 hover:text-white transition-colors">
-                      <Copy className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <p className="text-gray-400">
+                  Seu endereço: {walletData.address}
+                </p>
               </div>
             )}
 
             {activeTab === 'send' && (
-              <div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Endereço de Destino
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Endereço do Destinatário
                   </label>
                   <input
                     type="text"
                     value={recipientAddress}
                     onChange={(e) => setRecipientAddress(e.target.value)}
-                    className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="Digite o endereço EGLD"
-                    disabled={isLoading}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="erd1..."
                   />
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Quantidade
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
+                    Quantidade (EGLD)
                   </label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    step="0.000000000000000001"
-                    className="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="0.00"
-                    disabled={isLoading}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.0"
+                    step="0.001"
+                    min="0"
                   />
                 </div>
                 <button
-                  onClick={handleSend}
                   disabled={isLoading}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                  className={`w-full flex justify-center items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  {isLoading ? 'Enviando...' : 'Enviar'}
+                  <Send className="h-5 w-5" />
+                  <span>{isLoading ? 'Enviando...' : 'Enviar'}</span>
                 </button>
               </div>
             )}
 
             {activeTab === 'history' && (
-              <div>
-                {!transactions || transactions.length === 0 ? (
-                  <p className="text-center text-gray-400">Nenhuma transação encontrada</p>
-                ) : (
-                  <div className="space-y-4">
-                    {transactions.map((tx) => (
-                      <div
-                        key={tx.hash}
-                        className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
-                      >
-                        <div className="flex items-center">
-                          {tx.type === 'send' ? (
-                            <Send className="h-5 w-5 text-red-400 mr-2" />
-                          ) : (
-                            <History className="h-5 w-5 text-green-400 mr-2" />
-                          )}
-                          <div>
-                            <p className="text-sm font-medium">
-                              {tx.type === 'send' ? 'Enviado' : 'Recebido'}
-                            </p>
-                            <p className="text-xs text-gray-400">{tx.address}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-sm font-medium ${
-                            tx.type === 'send' ? 'text-red-400' : 'text-green-400'
-                          }`}>
-                            {tx.type === 'send' ? '-' : '+'}{tx.amount} {currentNetwork.egldLabel}
-                          </p>
-                          <p className="text-xs text-gray-400">{tx.timestamp}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="text-gray-400">
+                <p>Nenhuma transação encontrada.</p>
               </div>
             )}
           </div>
